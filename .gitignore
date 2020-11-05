@@ -1,3 +1,4 @@
 expr/
 *.pdparams
 *.pyc
+.idea/
