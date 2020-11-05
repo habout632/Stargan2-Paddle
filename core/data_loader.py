@@ -24,8 +24,6 @@ from paddorch.vision import transforms
 from paddorch.vision.datasets import ImageFolder
 
 
-
-
 def listdir(dname):
     fnames = list(chain(*[list(Path(dname).rglob('*.' + ext))
                           for ext in ['png', 'jpg', 'jpeg', 'JPG']]))
@@ -80,11 +78,11 @@ class ReferenceDataset(data.Dataset):
         return len(self.targets)
 
 
-def _make_balanced_sampler(labels,batch_size):
+def _make_balanced_sampler(labels, batch_size):
     class_counts = np.bincount(labels)
     class_weights = 1. / class_counts
     weights = class_weights[labels]
-    weights=weights/sum(weights)
+    weights = weights / sum(weights)
     return WeightedRandomSampler(weights, batch_size)
 
 
@@ -93,14 +91,14 @@ def get_train_loader(root, which='source', img_size=256,
     print('Preparing DataLoader to fetch %s images '
           'during the training phase...' % which)
 
-    crop = transforms.RandomResizedCrop(
-        img_size, scale=[0.8, 1.0], ratio=[0.9, 1.1])
+    # crop = transforms.RandomResizedCrop(
+    #     img_size, scale=[0.8, 1.0], ratio=[0.9, 1.1])
 
-    rand_crop = transforms.Lambda(
-        lambda x: crop(x) if random.random() < prob else x)
+    # rand_crop = transforms.Lambda(
+    #     lambda x: crop(x) if random.random() < prob else x)
 
     transform = transforms.Compose([
-        rand_crop,
+        # rand_crop,
         transforms.Resize([img_size, img_size]),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
@@ -115,14 +113,14 @@ def get_train_loader(root, which='source', img_size=256,
     else:
         raise NotImplementedError
 
-    sampler = _make_balanced_sampler(dataset.targets,batch_size)
+    sampler = _make_balanced_sampler(dataset.targets, batch_size)
 
     if sampler is not None:
         return data.DataLoader(dataset=dataset,
                                batch_size=1,
                                batch_sampler=sampler,
                                num_workers=num_workers,
-                               pin_memory=False )
+                               pin_memory=False)
     else:
         return data.DataLoader(dataset=dataset,
                                batch_size=batch_size,
@@ -193,7 +191,7 @@ class InputFetcher:
         except (AttributeError, StopIteration):
             self.iter = iter(self.loader)
             x, y = next(self.iter)
-        x=x[0]
+        # x = x[0]
         return x, y
 
     def _fetch_refs(self):
@@ -202,7 +200,7 @@ class InputFetcher:
         except (AttributeError, StopIteration):
             self.iter_ref = iter(self.loader_ref)
             x, x2, y = next(self.iter_ref)
-        return x[0], x2[0], y
+        return x, x2, y
 
     def __next__(self):
         x, y = self._fetch_inputs()

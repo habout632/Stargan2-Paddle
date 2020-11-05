@@ -68,11 +68,11 @@ class AdaIN(nn.Module):
     def __init__(self, style_dim, num_features):
         super().__init__()
         self.norm = nn.InstanceNorm2d(num_features, affine=False)
-        self.fc = nn.Linear(style_dim, num_features*2)
+        self.fc = nn.Linear(style_dim, num_features * 2)
 
     def forward(self, x, s):
         h = self.fc(s)
-        h=porch.varbase_to_tensor(h)
+        h = porch.varbase_to_tensor(h)
         h = h.view(h.size(0), h.size(1), 1, 1)
         gamma, beta = porch.chunk(h, chunks=2, dim=1)
         return (1 + gamma) * self.norm(x) + beta
@@ -125,8 +125,8 @@ class HighPass(nn.Module):
     def __init__(self, w_hpf, device):
         super(HighPass, self).__init__()
         self.filter = porch.varbase_to_tensor(porch.tensor([[-1, -1, -1],
-                                    [-1, 8., -1],
-                                    [-1, -1, -1]]).to(device) / w_hpf)
+                                                            [-1, 8., -1],
+                                                            [-1, -1, -1]]).to(device) / w_hpf)
 
     def forward(self, x):
         filter = self.filter.unsqueeze(0).unsqueeze(1).repeat(x.shape[1], 1, 1, 1)
@@ -136,7 +136,7 @@ class HighPass(nn.Module):
 class Generator(nn.Module):
     def __init__(self, img_size=256, style_dim=64, max_conv_dim=512, w_hpf=1):
         super().__init__()
-        dim_in = 2**14 // img_size
+        dim_in = 2 ** 14 // img_size
         self.img_size = img_size
         self.from_rgb = nn.Conv2d(3, dim_in, 3, 1, 1)
         self.encode = nn.ModuleList()
@@ -151,7 +151,7 @@ class Generator(nn.Module):
         if w_hpf > 0:
             repeat_num += 1
         for _ in range(repeat_num):
-            dim_out = min(dim_in*2, max_conv_dim)
+            dim_out = min(dim_in * 2, max_conv_dim)
             self.encode.append(
                 ResBlk(dim_in, dim_out, normalize=True, downsample=True))
             self.decode.insert(
@@ -186,7 +186,7 @@ class Generator(nn.Module):
                 mask = masks[0] if x.shape[2] in [32] else masks[1]
                 mask = F.interpolate(mask, size=x.shape[2], mode='bilinear')
                 x = x + self.hpf(mask * cache[x.shape[2]])
-        y=self.to_rgb(x)
+        y = self.to_rgb(x)
         return porch.varbase_to_tensor(y)
 
 
@@ -212,13 +212,13 @@ class MappingNetwork(nn.Module):
                                             nn.Linear(512, style_dim))]
 
     def forward(self, z, y):
-        h=self.shared(z)
+        h = self.shared(z)
         out = []
         for layer in self.unshared:
             out += [layer(h)]
         out = porch.stack(out, dim=1)  # (batch, num_domains, style_dim)
 
-        s = porch.take(out,list(zip(range(y.shape[0] ),y.numpy().astype(int).tolist() )) )
+        s = porch.take(out, list(zip(range(y.shape[0]), y.numpy().astype(int).tolist())))
         return s
 
     def finetune(self, z, y):
@@ -229,18 +229,19 @@ class MappingNetwork(nn.Module):
         out = porch.stack(out, dim=1)  # (batch, num_domains, style_dim)
 
         s = porch.take(out, list(zip(range(y.size(0)), y.numpy().astype(int).tolist())))
-        return s,h,out
+        return s, h, out
+
 
 class StyleEncoder(nn.Module):
     def __init__(self, img_size=256, style_dim=64, num_domains=2, max_conv_dim=512):
         super().__init__()
-        dim_in = 2**14 // img_size
+        dim_in = 2 ** 14 // img_size
         blocks = []
         blocks += [nn.Conv2d(3, dim_in, 3, 1, 1)]
 
         repeat_num = int(np.log2(img_size)) - 2
         for _ in range(repeat_num):
-            dim_out = min(dim_in*2, max_conv_dim)
+            dim_out = min(dim_in * 2, max_conv_dim)
             blocks += [ResBlk(dim_in, dim_out, downsample=True)]
             dim_in = dim_out
 
@@ -256,7 +257,7 @@ class StyleEncoder(nn.Module):
     def forward(self, x, y):
 
         h = self.shared(x)
-        h= porch.varbase_to_tensor(h)
+        h = porch.varbase_to_tensor(h)
         h = h.view(h.size(0), -1)
         out = []
         for layer in self.unshared:
@@ -269,13 +270,13 @@ class StyleEncoder(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, img_size=256, num_domains=2, max_conv_dim=512):
         super().__init__()
-        dim_in = 2**14 // img_size
+        dim_in = 2 ** 14 // img_size
         blocks = []
         blocks += [nn.Conv2d(3, dim_in, 3, 1, 1)]
 
         repeat_num = int(np.log2(img_size)) - 2
         for _ in range(repeat_num):
-            dim_out = min(dim_in*2, max_conv_dim)
+            dim_out = min(dim_in * 2, max_conv_dim)
             blocks += [ResBlk(dim_in, dim_out, downsample=True)]
             dim_in = dim_out
 
@@ -286,11 +287,10 @@ class Discriminator(nn.Module):
         self.main = nn.Sequential(*blocks)
 
     def forward(self, x, y):
-
         out = self.main(x)
-        out=porch.Tensor(out)
+        out = porch.Tensor(out)
         out = out.view(out.size(0), -1)  # (batch, num_domains)
-        idx = porch.LongTensor(np.arange(y.shape[0] ))
+        idx = porch.LongTensor(np.arange(y.shape[0]))
         # out = out[idx, y]  # (batch)
         s = porch.take(out, list(zip(range(y.shape[0]), y.numpy().astype(int).tolist())))
         return s
@@ -301,9 +301,9 @@ def build_model(args):
     mapping_network = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains)
     style_encoder = StyleEncoder(args.img_size, args.style_dim, args.num_domains)
     discriminator = Discriminator(args.img_size, args.num_domains)
-    generator_ema = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf) #generator.clone()
-    mapping_network_ema = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains) #mapping_network.clone()
-    style_encoder_ema =  StyleEncoder(args.img_size, args.style_dim, args.num_domains)#style_encoder.clone()
+    generator_ema = Generator(args.img_size, args.style_dim, w_hpf=args.w_hpf)  # generator.clone()
+    mapping_network_ema = MappingNetwork(args.latent_dim, args.style_dim, args.num_domains)  # mapping_network.clone()
+    style_encoder_ema = StyleEncoder(args.img_size, args.style_dim, args.num_domains)  # style_encoder.clone()
 
     nets = Munch(generator=generator,
                  mapping_network=mapping_network,

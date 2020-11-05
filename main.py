@@ -21,7 +21,7 @@ from core.solver import Solver
 
 
 def str2bool(v):
-    return v.lower() in ('true')
+    return v.lower() in 'true'
 
 
 def subdirs(dname):
@@ -32,8 +32,6 @@ def subdirs(dname):
 def main(args):
     print(args)
 
-    
-    
     solver = Solver(args)
 
     if args.mode == 'train':
@@ -82,11 +80,12 @@ def main(args):
 
 if __name__ == '__main__':
     import paddle
-    print("paddle version:",paddle.__version__)
+
+    print("paddle version:", paddle.__version__)
     parser = argparse.ArgumentParser()
 
     # model arguments
-    parser.add_argument('--img_size', type=int, default=256,
+    parser.add_argument('--img_size', type=int, default=1024,
                         help='Image resolution')
     parser.add_argument('--num_domains', type=int, default=2,
                         help='Number of domains')
@@ -118,7 +117,7 @@ if __name__ == '__main__':
                         help='Number of total iterations')
     parser.add_argument('--resume_iter', type=int, default=0,
                         help='Iterations to resume training/testing')
-    parser.add_argument('--batch_size', type=int, default=8,
+    parser.add_argument('--batch_size', type=int, default=16,
                         help='Batch size for training')
     parser.add_argument('--val_batch_size', type=int, default=32,
                         help='Batch size for validation')
@@ -185,5 +184,5 @@ if __name__ == '__main__':
     place = fluid.CUDAPlace(0)
     porch.manual_seed(args.seed)
     with fluid.dygraph.guard(place=place):
-        print("compute device:",place)
+        print("compute device:", place)
         main(args)

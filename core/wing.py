@@ -23,10 +23,11 @@ import paddorch as porch
 import paddorch.nn as nn
 import paddorch.nn.functional as F
 from paddorch.vision.models.wing import FaceAligner
+
+
 # import porch
 # import porch.nn as nn
 # import porch.nn.functional as F
-
 
 
 def align_faces(args, input_dir, output_dir):
@@ -63,7 +64,7 @@ def normalize(x, eps=1e-6):
     """Apply min-max normalization."""
     x = x.contiguous()
     N, C, H, W = x.size()
-    x_ = x.view(N*C, -1)
+    x_ = x.view(N * C, -1)
     max_val = porch.max(x_, dim=1, keepdim=True)[0]
     min_val = porch.min(x_, dim=1, keepdim=True)[0]
     x_ = (x_ - min_val) / (max_val - min_val + eps)
@@ -78,7 +79,7 @@ def truncate(x, thres=0.1):
 
 def resize(x, p=2):
     """Resize heatmaps."""
-    return x**p
+    return x ** p
 
 
 def shift(x, N):
@@ -87,14 +88,14 @@ def shift(x, N):
     N = abs(N)
     _, _, H, W = x.size()
     head = porch.arange(N)
-    tail = porch.arange(H-N)
+    tail = porch.arange(H - N)
 
     if up:
-        head = porch.arange(H-N)+N
+        head = porch.arange(H - N) + N
         tail = porch.arange(N)
     else:
-        head = porch.arange(N) + (H-N)
-        tail = porch.arange(H-N)
+        head = porch.arange(N) + (H - N)
+        tail = porch.arange(H - N)
 
     # permutation indices
     perm = porch.cat([head, tail]).to(x.device)
@@ -124,11 +125,11 @@ def preprocess(x):
 
     sw = H // 256
     operations = Munch(chin=OPPAIR(0, 3),
-                       eyebrows=OPPAIR(-7*sw, 2),
-                       nostrils=OPPAIR(8*sw, 4),
-                       lipupper=OPPAIR(-8*sw, 4),
-                       liplower=OPPAIR(8*sw, 4),
-                       lipinner=OPPAIR(-2*sw, 3))
+                       eyebrows=OPPAIR(-7 * sw, 2),
+                       nostrils=OPPAIR(8 * sw, 4),
+                       lipupper=OPPAIR(-8 * sw, 4),
+                       liplower=OPPAIR(8 * sw, 4),
+                       lipinner=OPPAIR(-2 * sw, 3))
 
     for part, ops in operations.items():
         start, end = index_map[part]
@@ -143,13 +144,13 @@ def preprocess(x):
     x[:, zero_out] = 0
 
     start, end = index_map.nose
-    x[:, start+1:end] = shift(x[:, start+1:end], 4*sw)
+    x[:, start + 1:end] = shift(x[:, start + 1:end], 4 * sw)
     x[:, start:end] = resize(x[:, start:end], 1)
 
     start, end = index_map.eyes
     x[:, start:end] = resize(x[:, start:end], 1)
     x[:, start:end] = resize(shift(x[:, start:end], -8), 3) + \
-        shift(x[:, start:end], -24)
+                      shift(x[:, start:end], -24)
 
     # Second-level mask
     x2 = deepcopy(x)

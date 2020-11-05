@@ -27,9 +27,10 @@ from metrics.eval import calculate_metrics
 
 from visualdl import LogWriter
 
+
 class Solver(nn.Module):
     def __init__(self, args):
-        
+
         super().__init__()
         self.args = args
         # self.device = porch.device('cuda' if porch.cuda.is_available() else 'cpu')
@@ -41,7 +42,7 @@ class Solver(nn.Module):
             setattr(self, name, module)
         for name, module in self.nets_ema.items():
             setattr(self, name + '_ema', module)
-        
+
         if args.mode == 'train':
             self.optims = Munch()
             for net in self.nets.keys():
@@ -60,8 +61,6 @@ class Solver(nn.Module):
         else:
             self.ckptios = [CheckpointIO(ospj(args.checkpoint_dir, '{:06d}_nets_ema.ckpt'), **self.nets_ema)]
 
- 
-
     def _save_checkpoint(self, step):
         for ckptio in self.ckptios:
             ckptio.save(step)
@@ -79,7 +78,7 @@ class Solver(nn.Module):
         nets = self.nets
         nets_ema = self.nets_ema
         optims = self.optims
-        writer=LogWriter(logdir=self.args.checkpoint_dir+"/log/")
+        writer = LogWriter(logdir=self.args.checkpoint_dir + "/log/")
 
         # fetch random validation images for debugging
         fetcher = InputFetcher(loaders.src, loaders.ref, args.latent_dim, 'train')
@@ -90,14 +89,13 @@ class Solver(nn.Module):
         if args.resume_iter > 0:
             self._load_checkpoint(args.resume_iter)
 
-
         # remember the initial value of ds weight
         initial_lambda_ds = args.lambda_ds
 
         print('Start training...')
         import tqdm
         start_time = time.time()
-        tqdm_descriptor=tqdm.trange(args.resume_iter, args.total_iters)
+        tqdm_descriptor = tqdm.trange(args.resume_iter, args.total_iters)
         for i in tqdm_descriptor:
             # fetch images and labels
             inputs = next(fetcher)
@@ -121,8 +119,8 @@ class Solver(nn.Module):
             optims.discriminator.minimize(d_loss)
 
             # train the generator
-            if i-args.resume_iter>100: ##train discriminator first
-                g_loss, g_losses_latent,sample_1 = compute_g_loss(
+            if i - args.resume_iter > 100:  ##train discriminator first
+                g_loss, g_losses_latent, sample_1 = compute_g_loss(
                     nets, args, x_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
                 self._reset_grad()
                 g_loss.backward()
@@ -130,12 +128,11 @@ class Solver(nn.Module):
                 optims.mapping_network.minimize(g_loss)
                 optims.style_encoder.minimize(g_loss)
 
-                g_loss, g_losses_ref,sample_2 = compute_g_loss(
+                g_loss, g_losses_ref, sample_2 = compute_g_loss(
                     nets, args, x_real, y_org, y_trg, x_refs=[x_ref, x_ref2], masks=masks)
                 self._reset_grad()
                 g_loss.backward()
                 optims.generator.minimize(g_loss)
-          
 
                 # compute moving average of network parameters
                 moving_average(nets.generator, nets_ema.generator, beta=0.999)
@@ -147,50 +144,51 @@ class Solver(nn.Module):
                     args.lambda_ds -= (initial_lambda_ds / args.ds_iter)
 
                 # print out log info
-                if (i+1) % args.print_every == 0:
+                if (i + 1) % args.print_every == 0:
                     elapsed = time.time() - start_time
                     elapsed = str(datetime.timedelta(seconds=elapsed))[:-7]
-                    log = "Elapsed time [%s], Iteration [%i/%i], " % (elapsed, i+1, args.total_iters)
+                    log = "Elapsed time [%s], Iteration [%i/%i], " % (elapsed, i + 1, args.total_iters)
                     all_losses = dict()
                     for loss, prefix in zip([d_losses_latent, d_losses_ref, g_losses_latent, g_losses_ref],
                                             ['D/latent_', 'D/ref_', 'G/latent_', 'G/ref_']):
                         for key, value in loss.items():
                             all_losses[prefix + key] = value
-                            writer.add_scalar(tag=prefix + key, step=i+1, value=value)
+                            writer.add_scalar(tag=prefix + key, step=i + 1, value=value)
                     all_losses['G/lambda_ds'] = args.lambda_ds
                     log += ' '.join(['%s: [%.4f]' % (key, value) for key, value in all_losses.items()])
                     tqdm_descriptor.set_description(log)
-                    writer.add_image("x_fake", (utils.denormalize(sample_1)*255).numpy().transpose([1,2,0]).astype(np.uint8), i+1 )
+                    writer.add_image("x_fake",
+                                     (utils.denormalize(sample_1) * 255).numpy().transpose([1, 2, 0]).astype(np.uint8),
+                                     i + 1)
 
                 # generate images for debugging
-                if (i+1) % args.sample_every == 0:
+                if (i + 1) % args.sample_every == 0:
                     os.makedirs(args.sample_dir, exist_ok=True)
-                    utils.debug_image(nets_ema, args, inputs=inputs_val, step=i+1)
+                    utils.debug_image(nets_ema, args, inputs=inputs_val, step=i + 1)
 
                 # save model checkpoints
-                if (i+1) % args.save_every == 0:
-                    self._save_checkpoint(step=i+1)
+                if (i + 1) % args.save_every == 0:
+                    self._save_checkpoint(step=i + 1)
 
                 # compute FID and LPIPS if necessary
-                if (i+1) % args.eval_every == 0:
-                    calculate_metrics(nets_ema, args, i+1, mode='latent')
-                    calculate_metrics(nets_ema, args, i+1, mode='reference')
+                if (i + 1) % args.eval_every == 0:
+                    calculate_metrics(nets_ema, args, i + 1, mode='latent')
+                    calculate_metrics(nets_ema, args, i + 1, mode='reference')
             else:
-                if (i+1) % args.print_every == 0:
+                if (i + 1) % args.print_every == 0:
                     elapsed = time.time() - start_time
                     elapsed = str(datetime.timedelta(seconds=elapsed))[:-7]
-                    log = "Elapsed time [%s], Iteration [%i/%i], " % (elapsed, i+1, args.total_iters)
+                    log = "Elapsed time [%s], Iteration [%i/%i], " % (elapsed, i + 1, args.total_iters)
                     all_losses = dict()
-                    for loss, prefix in zip([d_losses_latent, d_losses_ref ],
+                    for loss, prefix in zip([d_losses_latent, d_losses_ref],
                                             ['D/latent_', 'D/ref_']):
                         for key, value in loss.items():
                             all_losses[prefix + key] = value
-                            writer.add_scalar(tag=prefix + key, step=i+1, value=value)
+                            writer.add_scalar(tag=prefix + key, step=i + 1, value=value)
                     log += ' '.join(['%s: [%.4f]' % (key, value) for key, value in all_losses.items()])
                     tqdm_descriptor.set_description(log)
-                    
-        writer.close()
 
+        writer.close()
 
     def sample(self, loaders):
         args = self.args
@@ -227,10 +225,11 @@ class Solver(nn.Module):
         for name in self.nets_ema:
             self.nets_ema[name].train()
 
+
 def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, masks=None):
     assert (z_trg is None) != (x_ref is None)
     # with real images
-    x_real.stop_gradient=False
+    x_real.stop_gradient = False
     out = nets.discriminator(x_real, y_org)
     loss_real = adv_loss(out, 1)
     loss_reg = r1_reg(out, x_real)
@@ -246,10 +245,10 @@ def compute_d_loss(nets, args, x_real, y_org, y_trg, z_trg=None, x_ref=None, mas
     out = nets.discriminator(x_fake, y_trg)
     loss_fake = adv_loss(out, 0)
 
-    loss = porch.sum(loss_real + loss_fake  + args.lambda_reg * loss_reg)
+    loss = porch.sum(loss_real + loss_fake + args.lambda_reg * loss_reg)
     return loss, Munch(real=loss_real.numpy().flatten()[0],
                        fake=loss_fake.numpy().flatten()[0],
-                       reg=loss_reg )
+                       reg=loss_reg)
 
 
 def compute_g_loss(nets, args, x_real, y_org, y_trg, z_trgs=None, x_refs=None, masks=None):
@@ -289,16 +288,16 @@ def compute_g_loss(nets, args, x_real, y_org, y_trg, z_trgs=None, x_refs=None, m
     loss_cyc = porch.mean(porch.abs(x_rec - x_real))
 
     loss = loss_adv + args.lambda_sty * loss_sty \
-        - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc
+           - args.lambda_ds * loss_ds + args.lambda_cyc * loss_cyc
     return loss, Munch(adv=loss_adv.numpy().flatten()[0],
                        sty=loss_sty.numpy().flatten()[0],
                        ds=loss_ds.numpy().flatten()[0],
-                       cyc=loss_cyc.numpy().flatten()[0]),x_fake[0]
+                       cyc=loss_cyc.numpy().flatten()[0]), x_fake[0]
 
 
 def moving_average(model, model_test, beta=0.999):
     for param, param_test in zip(model.parameters(), model_test.parameters()):
-         porch.copy(porch.lerp(param, param_test, beta),param_test)
+        porch.copy(porch.lerp(param, param_test, beta), param_test)
 
 
 def adv_loss(logits, target):
@@ -307,7 +306,8 @@ def adv_loss(logits, target):
     loss = F.binary_cross_entropy_with_logits(logits, targets)
     return loss
 
-#TODO find a way to implement autograd
+
+# TODO find a way to implement autograd
 def r1_reg(d_out, x_in):
     return 0.0
     from paddle import fluid
@@ -319,7 +319,7 @@ def r1_reg(d_out, x_in):
             create_graph=False, retain_graph=True, only_inputs=True
         )[0]
         grad_dout2 = porch.Tensor(grad_dout).pow(2)
-        assert(grad_dout2.shape == x_in.shape)
+        assert (grad_dout2.shape == x_in.shape)
         reg = 0.5 * grad_dout2.view(batch_size, -1).sum(1).mean(0)
         return reg
     except:

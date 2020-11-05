@@ -14,8 +14,6 @@ from paddorch.vision.models.lpips import  LPIPS
 # from porchvision import models
 
 
-
-
 @porch.no_grad()
 def calculate_lpips_given_images(group_of_images):
     # group_of_images = [porch.randn(N, C, H, W) for _ in range(10)]

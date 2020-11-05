@@ -19,12 +19,12 @@ import ffmpeg
 
 import numpy as np
 
-
 import paddorch as porch
 import paddorch.nn as nn
 import paddorch.nn.functional as F
 import paddorch.vision as porchvision
 import paddorch.vision.utils as vutils
+
 
 # import   porch
 # import porch.nn as nn
@@ -41,7 +41,7 @@ def save_json(json_file, filename):
 def print_network(network, name):
     num_params = 0
     for p in network.parameters():
-        num_params +=  np.product(p.shape)
+        num_params += np.product(p.shape)
     # print(network)
     print("Number of parameters of %s: %i" % (name, num_params))
 
@@ -57,24 +57,21 @@ def print_network(network, name):
 #             nn.init.constant_(module.bias, 0)
 
 
-
 def denormalize(x):
     out = (x + 1) / 2
-    out=porch.varbase_to_tensor(out)
+    out = porch.varbase_to_tensor(out)
     return out.clamp_(0, 1)
 
 
 def save_image(x, ncol, filename):
     x = denormalize(x)
-    vutils.save_image(x , filename, nrow=ncol, padding=0)
-
+    vutils.save_image(x, filename, nrow=ncol, padding=0)
 
 
 def translate_and_reconstruct(nets, args, x_src, y_src, x_ref, y_ref, filename):
-
-    x_ref.stop_gradient=True
+    x_ref.stop_gradient = True
     y_ref.stop_gradient = True
-    x_src.stop_gradient=True
+    x_src.stop_gradient = True
     y_src.stop_gradient = True
     N, C, H, W = x_src.size()
     s_ref = nets.style_encoder(x_ref, y_ref)
@@ -87,7 +84,6 @@ def translate_and_reconstruct(nets, args, x_src, y_src, x_ref, y_ref, filename):
     x_concat = porch.cat(x_concat, dim=0)
     save_image(x_concat, N, filename)
     del x_concat
-
 
 
 def translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filename):
@@ -113,10 +109,11 @@ def translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filen
     x_concat = porch.cat(x_concat, dim=0)
     save_image(x_concat, N, filename)
 
+
 def translate_using_reference(nets, args, x_src, x_ref, y_ref, filename):
-    x_ref.stop_gradient=True
+    x_ref.stop_gradient = True
     y_ref.stop_gradient = True
-    x_src.stop_gradient=True
+    x_src.stop_gradient = True
 
     N, C, H, W = x_src.shape
     wb = porch.ones(1, C, H, W)
@@ -128,20 +125,20 @@ def translate_using_reference(nets, args, x_src, x_ref, y_ref, filename):
     x_concat = [x_src_with_wb]
     for i, s_ref in enumerate(s_ref_list):
         x_fake = nets.generator(x_src, s_ref, masks=masks)
-        x_fake_with_ref = porch.cat([x_ref[i:i+1], x_fake], dim=0)
+        x_fake_with_ref = porch.cat([x_ref[i:i + 1], x_fake], dim=0)
         x_concat += [x_fake_with_ref]
 
     x_concat = porch.cat(x_concat, dim=0)
-    save_image(x_concat, N+1, filename)
+    save_image(x_concat, N + 1, filename)
     del x_concat
 
 
 def debug_image(nets, args, inputs, step):
     x_src, y_src = inputs.x_src, inputs.y_src
     x_ref, y_ref = inputs.x_ref, inputs.y_ref
-    x_ref.stop_gradient=True
+    x_ref.stop_gradient = True
     y_ref.stop_gradient = True
-    x_src.stop_gradient=True
+    x_src.stop_gradient = True
     y_src.stop_gradient = True
 
     N = inputs.x_src.size(0)
@@ -186,7 +183,7 @@ def interpolate(nets, args, x_src, s_prev, s_next):
     for alpha in alphas:
         s_ref = porch.lerp(s_prev, s_next, alpha)
         x_fake = nets.generator(x_src, s_ref, masks=masks)
-        entries = porch.cat([x_src , x_fake ], dim=2)
+        entries = porch.cat([x_src, x_fake], dim=2)
         frame = porchvision.utils.make_grid(entries, nrow=B, padding=0, pad_value=-1).unsqueeze(0)
         frames.append(frame)
     frames = porch.cat(frames)
@@ -203,9 +200,9 @@ def slide(entries, margin=32):
     """
     _, C, H, W = entries[0].shape
     alphas = get_alphas()
-    T = len(alphas) # number of frames
+    T = len(alphas)  # number of frames
 
-    canvas = - porch.ones( T, C, H*2, W + margin )
+    canvas = - porch.ones(T, C, H * 2, W + margin)
     merged = porch.cat(entries, dim=2)  # (1, 3, 512, 256)
     for t, alpha in enumerate(alphas):
         top = int(H * (1 - alpha))  # top, bottom for canvas
@@ -216,11 +213,10 @@ def slide(entries, margin=32):
     return canvas
 
 
-
 def video_ref(nets, args, x_src, x_ref, y_ref, fname):
-    x_ref.stop_gradient=True
+    x_ref.stop_gradient = True
     y_ref.stop_gradient = True
-    x_src.stop_gradient=True
+    x_src.stop_gradient = True
 
     video = []
     s_ref = nets.style_encoder(x_ref, y_ref)
@@ -248,10 +244,8 @@ def video_ref(nets, args, x_src, x_ref, y_ref, fname):
     save_video(fname, video)
 
 
-
 def video_latent(nets, args, x_src, y_list, z_list, psi, fname):
-
-    x_src.stop_gradient=True
+    x_src.stop_gradient = True
 
     latent_dim = z_list[0].size(1)
     s_list = []
@@ -289,7 +283,7 @@ def video_latent(nets, args, x_src, y_list, z_list, psi, fname):
 def save_video(fname, images, output_fps=30, vcodec='libx264', filters=''):
     assert isinstance(images, np.ndarray), "images should be np.array: NHWC"
     num_frames, height, width, channels = images.shape
-    stream = ffmpeg.input('pipe:', format='rawvideo', 
+    stream = ffmpeg.input('pipe:', format='rawvideo',
                           pix_fmt='rgb24', s='{}x{}'.format(width, height))
     stream = ffmpeg.filter(stream, 'setpts', '2*PTS')  # 2*PTS is for slower playback
     stream = ffmpeg.output(stream, fname, pix_fmt='yuv420p', vcodec=vcodec, r=output_fps)

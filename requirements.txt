@@ -1,3 +1,4 @@
+paddle
 paddlepaddle-gpu==1.8.4.post97
 munch==2.5.0
 ffmpeg
