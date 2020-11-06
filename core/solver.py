@@ -119,7 +119,7 @@ class Solver(nn.Module):
             optims.discriminator.minimize(d_loss)
 
             # train the generator
-            if i - args.resume_iter > 100:  ##train discriminator first
+            if i - args.resume_iter > 1:  ## train discriminator first
                 g_loss, g_losses_latent, sample_1 = compute_g_loss(
                     nets, args, x_real, y_org, y_trg, z_trgs=[z_trg, z_trg2], masks=masks)
                 self._reset_grad()
@@ -135,9 +135,9 @@ class Solver(nn.Module):
                 optims.generator.minimize(g_loss)
 
                 # compute moving average of network parameters
-                moving_average(nets.generator, nets_ema.generator, beta=0.999)
-                moving_average(nets.mapping_network, nets_ema.mapping_network, beta=0.999)
-                moving_average(nets.style_encoder, nets_ema.style_encoder, beta=0.999)
+                # moving_average(nets.generator, nets_ema.generator, beta=0.999)
+                # moving_average(nets.mapping_network, nets_ema.mapping_network, beta=0.999)
+                # moving_average(nets.style_encoder, nets_ema.style_encoder, beta=0.999)
 
                 # decay weight for diversity sensitive loss
                 if args.lambda_ds > 0:

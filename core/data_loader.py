@@ -200,6 +200,7 @@ class InputFetcher:
         except (AttributeError, StopIteration):
             self.iter_ref = iter(self.loader_ref)
             x, x2, y = next(self.iter_ref)
+        # return x[0], x2[0], y
         return x, x2, y
 
     def __next__(self):
