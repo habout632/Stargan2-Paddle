@@ -88,6 +88,7 @@ def translate_and_reconstruct(nets, args, x_src, y_src, x_ref, y_ref, filename):
 
 
 def translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filename):
+    n_images = 100
     x_src.stop_gradient = True
     N, C, H, W = x_src.shape
     latent_dim = z_trg_list[0].shape[1]
@@ -95,9 +96,9 @@ def translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filen
     masks = nets.fan.get_heatmap(x_src) if args.w_hpf > 0 else None
 
     for i, y_trg in enumerate(y_trg_list):
-        z_many = porch.randn(10000, latent_dim)
+        z_many = porch.randn(n_images, latent_dim)
         # y_many = porch.LongTensor(10000).fill_(y_trg[0])
-        y_many = np.empty([10000])
+        y_many = np.empty([n_images])
         y_many.fill(y_trg[0].numpy()[0])
         y_many = to_variable(y_many)
         s_many = nets.mapping_network(z_many, y_many)

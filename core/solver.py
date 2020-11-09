@@ -134,10 +134,10 @@ class Solver(nn.Module):
                 g_loss.backward()
                 optims.generator.minimize(g_loss)
 
-                # compute moving average of network parameters
-                moving_average(nets.generator, nets_ema.generator, beta=0.999)
-                moving_average(nets.mapping_network, nets_ema.mapping_network, beta=0.999)
-                moving_average(nets.style_encoder, nets_ema.style_encoder, beta=0.999)
+                # # compute moving average of network parameters
+                # moving_average(nets.generator, nets_ema.generator, beta=0.999)
+                # moving_average(nets.mapping_network, nets_ema.mapping_network, beta=0.999)
+                # moving_average(nets.style_encoder, nets_ema.style_encoder, beta=0.999)
 
                 # decay weight for diversity sensitive loss
                 if args.lambda_ds > 0:
