@@ -73,7 +73,7 @@ def translate_and_reconstruct(nets, args, x_src, y_src, x_ref, y_ref, filename):
     y_ref.stop_gradient = True
     x_src.stop_gradient = True
     y_src.stop_gradient = True
-    N, C, H, W = x_src.size()
+    N, C, H, W = x_src.shape
     s_ref = nets.style_encoder(x_ref, y_ref)
     masks = nets.fan.get_heatmap(x_src) if args.w_hpf > 0 else None
     x_fake = nets.generator(x_src, s_ref, masks=masks)
@@ -141,7 +141,7 @@ def debug_image(nets, args, inputs, step):
     x_src.stop_gradient = True
     y_src.stop_gradient = True
 
-    N = inputs.x_src.size(0)
+    N = inputs.x_src.shape[0]
 
     # translate and reconstruct (reference-guided)
     filename = ospj(args.sample_dir, '%06d_cycle_consistency.jpg' % (step))
@@ -156,7 +156,7 @@ def debug_image(nets, args, inputs, step):
         translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filename)
 
     # reference-guided image synthesis
-    filename = ospj(args.sample_dir, '%06d_reference.jpg' % (step))
+    filename = ospj(args.sample_dir, '%06d_reference.jpg' % step)
     translate_using_reference(nets, args, x_src, x_ref, y_ref, filename)
 
 
