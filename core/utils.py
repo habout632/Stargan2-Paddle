@@ -154,12 +154,12 @@ def debug_image(nets, args, inputs, step):
     # latent-guided image synthesis
     # y_trg_list = [porch.tensor(y).repeat(N)
     #               for y in range(min(args.num_domains, 5))]
-    y_trg_list = [ to_variable(np.tile(y, N))
-                  for y in range(min(args.num_domains, 5))]
-    z_trg_list = porch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1)
-    for psi in [0.5, 0.7, 1.0]:
-        filename = ospj(args.sample_dir, '%06d_latent_psi_%.1f.jpg' % (step, psi))
-        translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filename)
+    # y_trg_list = [ to_variable(np.tile(y, N))
+    #               for y in range(min(args.num_domains, 5))]
+    # z_trg_list = porch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1)
+    # for psi in [0.5, 0.7, 1.0]:
+    #     filename = ospj(args.sample_dir, '%06d_latent_psi_%.1f.jpg' % (step, psi))
+    #     translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filename)
 
     # reference-guided image synthesis
     filename = ospj(args.sample_dir, '%06d_reference.jpg' % step)
