@@ -14,6 +14,7 @@ import json
 import glob
 from shutil import copyfile
 
+from paddle.fluid.dygraph import to_variable
 from tqdm import tqdm
 import ffmpeg
 
@@ -88,14 +89,17 @@ def translate_and_reconstruct(nets, args, x_src, y_src, x_ref, y_ref, filename):
 
 def translate_using_latent(nets, args, x_src, y_trg_list, z_trg_list, psi, filename):
     x_src.stop_gradient = True
-    N, C, H, W = x_src.size()
-    latent_dim = z_trg_list[0].size(1)
+    N, C, H, W = x_src.shape
+    latent_dim = z_trg_list[0].shape[1]
     x_concat = [x_src]
     masks = nets.fan.get_heatmap(x_src) if args.w_hpf > 0 else None
 
     for i, y_trg in enumerate(y_trg_list):
         z_many = porch.randn(10000, latent_dim)
-        y_many = porch.LongTensor(10000).fill_(y_trg[0])
+        # y_many = porch.LongTensor(10000).fill_(y_trg[0])
+        y_many = np.empty([10000])
+        y_many.fill(y_trg[0].numpy()[0])
+        y_many = to_variable(y_many)
         s_many = nets.mapping_network(z_many, y_many)
         s_avg = porch.mean(s_many, dim=0, keepdim=True)
         s_avg = s_avg.repeat(N, 1)
@@ -148,7 +152,9 @@ def debug_image(nets, args, inputs, step):
     translate_and_reconstruct(nets, args, x_src, y_src, x_ref, y_ref, filename)
 
     # latent-guided image synthesis
-    y_trg_list = [porch.tensor(y).repeat(N)
+    # y_trg_list = [porch.tensor(y).repeat(N)
+    #               for y in range(min(args.num_domains, 5))]
+    y_trg_list = [ to_variable(np.tile(y, N))
                   for y in range(min(args.num_domains, 5))]
     z_trg_list = porch.randn(args.num_outs_per_domain, 1, args.latent_dim).repeat(1, N, 1)
     for psi in [0.5, 0.7, 1.0]:
